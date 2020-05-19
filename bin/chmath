@@ -13,10 +13,11 @@ require "children_math"
 #require "irb"
 #IRB.start(__FILE__)
 
+page_number = 10
 i = 0
-while i < 20
+while i < page_number
   ChildrenMath::Teacher.new(20, 3).make_subject(54)
   i += 1
-  puts
-  puts '-' * 50 + " #{i} -"
+  # puts
+  # puts '-' * 50 + " #{i} -"
 end

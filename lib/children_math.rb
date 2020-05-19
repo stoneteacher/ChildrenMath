@@ -41,14 +41,16 @@ module ChildrenMath
 
       # Mix in
       operation.shuffle!
+      # p operation
 
       max_text_length = 0
       operation.map! do |e|
-        result_number = range(3, @number_limit)
         case e
         when SUBJECT_TYPE_ADD
+          result_number = range(3, @number_limit)
           message = create_add_subject(result_number)
         when SUBJECT_TYPE_SUB
+          result_number = range(0, @number_limit)
           message = create_sub_subject(result_number)
         else
           message = 'unsupport type'
@@ -80,6 +82,7 @@ module ChildrenMath
     def make_subject_count_fill(count = 50)
       half_count = (count / 2).floor
       operation = Array.new(half_count, SUBJECT_TYPE_ADD)
+      # operation = Array.new(half_count, SUBJECT_TYPE_SUB)
       operation + Array.new(count - half_count, SUBJECT_TYPE_SUB)
     end
 
@@ -90,19 +93,25 @@ module ChildrenMath
     def create_add_subject(result_number = 20)
       num1 = range(1, result_number)
       num2 = result_number - num1
+      if num2 == 0
+        result_number = range(4, @number_limit)
+        return create_add_subject(result_number)
+      end
       subject_message = make_subject_string(num1, num2, ADD_CHAR)
       handle_subject_string(subject_message)
     end
 
     def create_sub_subject(result_number = 20)
-      num1 = range(1, result_number)
-      num2 = result_number - num1
-      if num1 <= num2
-        num1 = num2
-        num2 = result_number - num1
+      num1 = range(result_number, @number_limit)
+      num2 = num1 - result_number
+      if num2 == 0
+        # exclude same number
+        recreate_result = result_number - 1 > 0 ? result_number - 1 : range(0, @number_limit)
+        create_sub_subject(recreate_result)
+      else
+        subject_message = make_subject_string(num1, num2, SUB_CHAR)
+        handle_subject_string(subject_message)
       end
-      subject_message = make_subject_string(num1, num2, SUB_CHAR)
-      handle_subject_string(subject_message)
     end
 
     def check_number_duplicated?(message)
