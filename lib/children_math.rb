@@ -28,6 +28,7 @@ module ChildrenMath
 
     attr_accessor :result_number_max
     attr_accessor :result_number_min
+
     attr_accessor :first_number_max
     attr_accessor :first_number_min
     attr_accessor :second_number_max
@@ -36,6 +37,10 @@ module ChildrenMath
     attr_accessor :page_width
     attr_accessor :subject_container
 
+    # Initialize teacher job
+    # @param The min result number
+    # @param The max result number
+    #
     def initialize(result_number_min = 4, result_number_max = 20)
       @result_number_min = result_number_min
       @result_number_max = result_number_max
@@ -45,10 +50,42 @@ module ChildrenMath
       @subject_container = []
     end
 
-    def make_subject(count = 99, first_num_min = 1, first_num_max = @result_number_max)
-      # operation = make_subject_count_fill(count)
+    # Create addition subjects.
+    # @param The count of subjects
+    # @param The min first number
+    # @param The max first number
+    #
+    # @return Subject text
+    def make_subject_add(count = 99, first_num_min = 1, first_num_max = @result_number_max)
       operation = Array.new(count, SUBJECT_TYPE_ADD)
+      max_text_length = 0
+      operation.map! do
+        message = create_add_subject(@result_number_min, @result_number_max, first_num_min, first_num_max)
+        max_text_length = message.length if message.length > max_text_length
+        message
+      end
+      subject_format_output(operation, max_text_length)
+    end
 
+    # Create subtraction subjects.
+    # @param The count of subjects
+    # @param The min first number
+    # @param The max first number
+    #
+    # @return Subject text
+    def make_subject_sub(count = 99, first_num_min = 1, first_num_max = @result_number_max)
+      operation = Array.new(count, SUBJECT_TYPE_SUB)
+      max_text_length = 0
+      operation.map! do
+        message = create_sub_subject(@result_number_min, @result_number_max, first_num_min, first_num_max)
+        max_text_length = message.length if message.length > max_text_length
+        message
+      end
+      subject_format_output(operation, max_text_length)
+    end
+
+    def make_subject_mix(count = 99, first_num_min = 1, first_num_max = @result_number_max)
+      operation = make_addsub_subject_count_fill(count)
       # Mix in
       operation.shuffle!
       # p operation
@@ -57,16 +94,13 @@ module ChildrenMath
       operation.map! do |e|
         case e
         when SUBJECT_TYPE_ADD
-          # result_number = range(3, @result_number_max)
-          # message = create_add_subject(result_number)
           message = create_add_subject(@result_number_min, @result_number_max, first_num_min, first_num_max)
         when SUBJECT_TYPE_SUB
-          # result_number = range(0, @result_number_max)
-          # message = create_sub_subject(result_number)
-          message = create_sub_subject(@result_number_min, @result_number_max)
+          message = create_sub_subject(@result_number_min, @result_number_max, first_num_min, first_num_max)
         else
-          message = 'unsupport type'
+          message = 'None-Support Type'
         end
+
         max_text_length = message.length if message.length > max_text_length
         message
       end
@@ -91,10 +125,9 @@ module ChildrenMath
       puts outputs.join("\n")
     end
 
-    def make_subject_count_fill(count = 50)
+    def make_addsub_subject_count_fill(count = 50)
       half_count = (count / 2).floor
       operation = Array.new(half_count, SUBJECT_TYPE_ADD)
-      # operation = Array.new(half_count, SUBJECT_TYPE_SUB)
       operation + Array.new(count - half_count, SUBJECT_TYPE_SUB)
     end
 
@@ -107,44 +140,45 @@ module ChildrenMath
 
       first_real_min = result_number > first_num_min ? first_num_min : result_number
       first_real_max = result_number > first_num_max ? first_num_max : result_number
-      first_real_max = first_real_min > first_real_max ? first_real_min : first_real_max
+      first_real_max = first_real_min if first_real_min > first_real_max
+
+      # if result_number > first_num_min or result_number > first_num_max
+        # puts "Hit the bad number of first number.\nSet first min : #{first_real_min}, max : #{first_real_max}"
+      # end
 
       num1 = range(first_real_min, first_real_max)
       num2 = result_number - num1
       if num2 == 0 and res_num_min != res_num_max
-        return create_add_subject(res_num_min, res_num_max, first_num_min, first_num_max)
+        # puts '-' * 20 + "res : #{res_num_min}, #{res_num_max}"
+        # puts '-' * 20 + "first : #{first_real_min}, #{first_real_max}"
+        return create_add_subject(res_num_min, res_num_max, first_real_min, first_real_max)
       end
       subject_message = make_subject_string(num1, num2, ADD_CHAR)
-      subject_message = remake_message_if_needed(subject_message)
       handle_subject_string(subject_message)
     end
 
-    def create_sub_subject(res_num_min, res_num_max, first_num_min = 20)
-      num1 = range(result_number, @result_number_max)
+    def create_sub_subject(res_num_min, res_num_max, first_num_min = res_num_min, first_num_max = res_num_max)
+      result_number = range(res_num_min, res_num_max)
+
+      # fix first number as sub
+      first_real_min = first_num_min < result_number ? result_number : first_num_min
+      first_real_max = first_num_max < result_number ? result_number : first_num_max
+      first_real_min = first_real_max if first_real_min > first_real_max
+
+      num1 = range(first_real_min, first_real_max)
       num2 = num1 - result_number
-      if num2 == 0
+      if num2 == 0 and res_num_min != res_num_max
         # exclude same number
-        recreate_result = result_number - 1 > 0 ? result_number - 1 : range(0, @result_number_max)
-        create_sub_subject(recreate_result)
-      else
-        subject_message = make_subject_string(num1, num2, SUB_CHAR)
-        handle_subject_string(subject_message)
+        return create_sub_subject(res_num_min, res_num_max, first_real_min, first_real_max)
       end
+      subject_message = make_subject_string(num1, num2, SUB_CHAR)
+      handle_subject_string(subject_message)
     end
 
     def check_number_duplicated?(message)
       return true if @subject_container.include?(message)
       false
     end
-
-    def remake_message_if_needed(message)
-      if check_number_duplicated?(message)
-        @subject_container.delete(message)
-        result_number = range(3, @result_number_max)
-        message = create_sub_subject(result_number)
-      end
-    end
-
 
     def handle_subject_string(message)
       @subject_container.push(message)
