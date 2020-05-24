@@ -23,8 +23,9 @@ module ChildrenMath
           OptParseValidator::OptInteger.new(['-c', '--count NUMBER', 'Count of subject number. The default count is 99.'], default: 99),
           OptParseValidator::OptInteger.new(['-w', '--page-width NUMBER', 'Page width with space. The default is 40.'], default: 40),
           OptParseValidator::OptFilePath.new(['-o', '--output FILE', 'Output to FILE'], writable: true, exists: false),
-          OptParseValidator::OptBoolean.new(['-a', '--add', 'Only generate addition subject']),
-          OptParseValidator::OptBoolean.new(['-s', '--sub', 'Only generate subtraction subject']),
+          OptParseValidator::OptBoolean.new(['-a', '--add', 'Only generate addition subject.']),
+          OptParseValidator::OptBoolean.new(['-s', '--sub', 'Only generate subtraction subject.']),
+          OptParseValidator::OptBoolean.new(['-i', '--info', 'Debug info.']),
         ).results
 
         ChildrenMath.usage if parsed_cli_options.empty?
@@ -37,21 +38,44 @@ module ChildrenMath
       end
 
       end_time = Time.now
-      puts "Cost time: #{end_time - start_time}"
+      puts "Cost time: #{end_time - start_time}(S)" unless parsed_cli_options[:info].nil?
     end
 
     def handle_subject(options)
-      p options
+      p options unless options[:info].nil?
 
       result = options[:result_number]
-      first = options[:first_number].nil? ? result.begin..result.end : options[:first_number]
-      count = options[:count]
       page_width = options[:page_width]
-      add = false if options[:add].nil?
-      sub = false if options[:sub].nil?
-      output = options[:output]
-
+      teacher = Teacher.new(result.begin, result.end, page_width)
+      create_subject(teacher, options)
     end
+
+    def create_subject(teacher, opt)
+      result = opt[:result_number]
+      first = opt[:first_number].nil? ? result.begin..result.end : opt[:first_number]
+      add_flag = opt[:add].nil? ? false : true
+      sub_flag = opt[:sub].nil? ? false : true
+      count = opt[:count]
+      output = opt[:output]
+
+      content = ''
+      if (add_flag and sub_flag) or (!add_flag and !sub_flag)
+        content = teacher.make_subject_mix(count, first.begin, first.end)
+      elsif add_flag
+        content = teacher.make_subject_add(count, first.begin, first.end)
+      elsif sub_flag
+        content = teacher.make_subject_sub(count, first.begin, first.end)
+      else
+        puts "None support subject."
+      end
+
+      if output.nil?
+        puts content
+      else
+        teacher.write_file(content, output)
+      end
+    end
+
   end
 
   class Teacher
@@ -102,7 +126,6 @@ module ChildrenMath
         message
       end
       subjects = subject_format(operation, max_text_length)
-      puts subjects
       subjects
     end
 
@@ -120,9 +143,7 @@ module ChildrenMath
         max_text_length = message.length if message.length > max_text_length
         message
       end
-      subjects = subject_format(operation, max_text_length)
-      puts subjects
-      subjects
+      subject_format(operation, max_text_length)
     end
 
     def make_subject_mix(count = 99, first_num_min = 1, first_num_max = @result_number_max)
@@ -145,9 +166,7 @@ module ChildrenMath
         message
       end
 
-      subjects = subject_format(operation, max_text_length)
-      puts subjects
-      subjects
+      subject_format(operation, max_text_length)
     end
 
     def subject_format(subject, text_length, row_count = 3)
@@ -233,7 +252,7 @@ module ChildrenMath
 
     def write_file(content, file_path = 'subject.txt')
 
-      File.open(file_path) do |f|
+      File.open(file_path, 'w') do |f|
         f.write(content)
       end
     end
