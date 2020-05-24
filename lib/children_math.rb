@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "chmath/version"
+require 'usage'
 require 'opt_parse_validator'
 
 module ChildrenMath
@@ -8,12 +9,48 @@ module ChildrenMath
   end
 
   class Runner
+    def initialize
+      start_time = Time.now
 
-    attr_accessor :output_file
-    attr_accessor :subject_count
-    attr_accessor :limit_number
+      begin
+        parsed_cli_options = OptParseValidator::OptParser.new.add(
+          OptParseValidator::OptIntegerRange.new(['-r',
+                                                  '--result-number NUMBER-Range',
+                                                  '[Require] Range of result number.'], required: true),
+          OptParseValidator::OptIntegerRange.new(['-f',
+                                                  '--first-number NUMBER-Range',
+                                                  'Range of first number. The default number is result number min to result number max.']),
+          OptParseValidator::OptInteger.new(['-c', '--count NUMBER', 'Count of subject number. The default count is 99.'], default: 99),
+          OptParseValidator::OptInteger.new(['-w', '--page-width NUMBER', 'Page width with space. The default is 40.'], default: 40),
+          OptParseValidator::OptFilePath.new(['-o', '--output FILE', 'Output to FILE'], writable: true, exists: false),
+          OptParseValidator::OptBoolean.new(['-a', '--add', 'Only generate addition subject']),
+          OptParseValidator::OptBoolean.new(['-s', '--sub', 'Only generate subtraction subject']),
+        ).results
 
-    def initialize(options)
+        ChildrenMath.usage if parsed_cli_options.empty?
+
+        handle_subject(parsed_cli_options)
+
+      rescue OptParseValidator::Error => e
+        puts 'Parsing Error: ' + e.message
+        ChildrenMath.usage
+      end
+
+      end_time = Time.now
+      puts "Cost time: #{end_time - start_time}"
+    end
+
+    def handle_subject(options)
+      p options
+
+      result = options[:result_number]
+      first = options[:first_number].nil? ? result.begin..result.end : options[:first_number]
+      count = options[:count]
+      page_width = options[:page_width]
+      add = false if options[:add].nil?
+      sub = false if options[:sub].nil?
+      output = options[:output]
+
     end
   end
 
@@ -41,12 +78,12 @@ module ChildrenMath
     # @param The min result number
     # @param The max result number
     #
-    def initialize(result_number_min = 4, result_number_max = 20)
+    def initialize(result_number_min = 4, result_number_max = 20, page_width = MAX_PAGE_WIDTH)
       @result_number_min = result_number_min
       @result_number_max = result_number_max
       @result_number_max = @result_number_min if @result_number_min > @result_number_max
 
-      @page_width = MAX_PAGE_WIDTH
+      @page_width = page_width
       @subject_container = []
     end
 
@@ -64,7 +101,9 @@ module ChildrenMath
         max_text_length = message.length if message.length > max_text_length
         message
       end
-      subject_format_output(operation, max_text_length)
+      subjects = subject_format(operation, max_text_length)
+      puts subjects
+      subjects
     end
 
     # Create subtraction subjects.
@@ -81,14 +120,15 @@ module ChildrenMath
         max_text_length = message.length if message.length > max_text_length
         message
       end
-      subject_format_output(operation, max_text_length)
+      subjects = subject_format(operation, max_text_length)
+      puts subjects
+      subjects
     end
 
     def make_subject_mix(count = 99, first_num_min = 1, first_num_max = @result_number_max)
       operation = make_addsub_subject_count_fill(count)
       # Mix in
       operation.shuffle!
-      # p operation
 
       max_text_length = 0
       operation.map! do |e|
@@ -105,10 +145,12 @@ module ChildrenMath
         message
       end
 
-      subject_format_output(operation, max_text_length)
+      subjects = subject_format(operation, max_text_length)
+      puts subjects
+      subjects
     end
 
-    def subject_format_output(subject, text_length, row_count = 3)
+    def subject_format(subject, text_length, row_count = 3)
       horizon_space = (MAX_PAGE_WIDTH / row_count).floor
       outputs = []
       message = ''
@@ -122,7 +164,7 @@ module ChildrenMath
           message = ''
         end
       end
-      puts outputs.join("\n")
+      outputs.join("\n")
     end
 
     def make_addsub_subject_count_fill(count = 50)
@@ -143,7 +185,7 @@ module ChildrenMath
       first_real_max = first_real_min if first_real_min > first_real_max
 
       # if result_number > first_num_min or result_number > first_num_max
-        # puts "Hit the bad number of first number.\nSet first min : #{first_real_min}, max : #{first_real_max}"
+      # puts "Hit the bad number of first number.\nSet first min : #{first_real_min}, max : #{first_real_max}"
       # end
 
       num1 = range(first_real_min, first_real_max)
@@ -187,6 +229,13 @@ module ChildrenMath
 
     def make_subject_string(number1, number2, operator = ADD_CHAR)
       "#{number1} #{operator} #{number2} = "
+    end
+
+    def write_file(content, file_path = 'subject.txt')
+
+      File.open(file_path) do |f|
+        f.write(content)
+      end
     end
   end
 end
