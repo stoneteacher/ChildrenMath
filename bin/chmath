@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require "bundler/setup"
+#require "bundler/setup"
 require "children_math"
 
 ChildrenMath::Runner.new

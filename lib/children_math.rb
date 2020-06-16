@@ -170,7 +170,7 @@ module ChildrenMath
     end
 
     def subject_format(subject, text_length, row_count = 3)
-      horizon_space = (MAX_PAGE_WIDTH / row_count).floor
+      horizon_space = (@page_width / row_count).floor
       outputs = []
       message = ''
       subject.each_with_index do |sub, i|
