@@ -1,8 +1,9 @@
 #!/usr/bin/env ruby
 
 if ARGV.count < 1
-  puts "Make random line"
+  puts "* Make random line of specified file *"
   puts "Usage: #{__FILE__} want_to_random_line_file.txt"
+  exit
 end
 
 file_path = ARGV[0]
